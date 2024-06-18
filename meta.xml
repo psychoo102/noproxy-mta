@@ -1,0 +1,11 @@
+<meta>
+    <info author="psychoo102" version="1.0.0" name="noproxy-mta" description="Protection for naughty players using VPN/proxy powered by OK! NoProxy" type="script"/>
+
+    <script src="server.lua" type="server" />
+
+    <aclrequest>
+        <right name="function.fetchRemote" access="true"/>
+        <right name="function.banPlayer" access="true"/>
+        <right name="function.kickPlayer" access="true"/>
+    </aclrequest>
+</meta>
