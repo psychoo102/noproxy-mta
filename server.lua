@@ -55,7 +55,7 @@ function checkVPN(player)
 	
     fetchRemote(string.format("https://api.noproxy.okaeri.cloud/v1/%s", playerIP), sendOptions, function (rdata, status)
         if (not status.success) then
-            outputDebugString(string.format("[NOPROXY] Unable to verify %s (SERIAL: %s IP: %s)", getPlayerName(player), playerSerial, getPlayerIP(player)))
+            outputDebugString(string.format("[NOPROXY] Unable to verify %s (SERIAL: %s IP: %s)", getPlayerName(player), playerSerial, playerIP))
             outputDebugString(string.format("[NOPROXY] Error: %s", status.statusCode))
             if noproxy.kickOnError then
                 kickPlayer(player, "Unable to check your connection")
@@ -68,14 +68,14 @@ function checkVPN(player)
                 if noproxy.punishmentWithKick then
                     kickPlayer(player, noproxy.punishReason)
                 elseif noproxy.punishmentWithBan then
-                    banPlayer(player, playerIP, nil, playerSerial, nil, noproxy.punishReason, noproxy.punishBanTime)
+                    banPlayer(player, true, nil, true, nil, noproxy.punishReason, noproxy.punishBanTime)
                 end
             end
-			outputDebugString("[NOPROXY] VPN/proxy detected on %s (SERIAL: %s IP: %s)", getPlayerName(player), playerSerial, getPlayerIP(player))
+			outputDebugString("[NOPROXY] VPN/proxy detected on %s (SERIAL: %s IP: %s)", getPlayerName(player), playerSerial, playerIP)
             return
         end
 
-        outputDebugString(string.format("[NOPROXY] No VPN/proxy on %s (SERIAL: %s IP: %s)", getPlayerName(player), playerSerial, getPlayerIP(player)))
+        outputDebugString(string.format("[NOPROXY] No VPN/proxy on %s (SERIAL: %s IP: %s)", getPlayerName(player), playerSerial, playerIP))
     end)
 	return true
 end
