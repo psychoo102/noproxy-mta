@@ -22,10 +22,16 @@ noproxy.punishWithKick = false
 noproxy.punishWithBan = true
 -- Set ban time for using VPN/proxy in seconds (0 for permanent)
 noproxy.punishBanTime = 0
+-- Send to webhook when detected?
+noproxy.sendWebhook = false
+-- Discord webhook to inform when VPN/proxy detected
+noproxy.webhookURL = ""
+-- Discord webhook username
+noproxy.webhookUsername = "NO-PROXY"
 -----------------------------------------------------------------------
 
 sendOptions = {
-    queueName = "NOPROXY",
+    queueName = "NO-PROXY",
     connectionAttempts = 3,
     connectTimeout = 5000,
     headers = {
@@ -34,9 +40,11 @@ sendOptions = {
 }
 
 addEventHandler("onResourceStart", resourceRoot, function()
+    outputServerLog("[NOPROXY] Protection Enabled.")
 	outputDebugString("[NOPROXY] Protection Enabled.")
 
 	if noproxy.onStartCheckup then
+        outputServerLog("[NOPROXY] Checking players...")
         outputDebugString("[NOPROXY] Checking players...")
 		for i, player in ipairs(getElementsByType("player")) do
 			setTimer(function() checkVPN(player) end, i*100, 1)
@@ -50,12 +58,14 @@ function checkVPN(player)
     local playerSerial = getPlayerSerial(player)
 	
 	for _, ip in ipairs(noproxy.excludeIPs) do
-		if ip == playerIP then outputDebugString("[NOPROXY] IP avoided.", 2) return false end
+		if ip == playerIP then outputServerLog(string.format("[NOPROXY] IP %s avoided.", playerIP)) outputDebugString(string.format("[NOPROXY] IP %s avoided.", playerIP), 2) return false end
 	end
 	
     fetchRemote(string.format("https://api.noproxy.okaeri.cloud/v1/%s", playerIP), sendOptions, function (rdata, status)
         if (not status.success) then
+            outputServerLog(string.format("[NOPROXY] Unable to verify %s (SERIAL: %s IP: %s)", getPlayerName(player), playerSerial, playerIP))
             outputDebugString(string.format("[NOPROXY] Unable to verify %s (SERIAL: %s IP: %s)", getPlayerName(player), playerSerial, playerIP))
+            outputServerLog(string.format("[NOPROXY] Error: %s", status.statusCode))
             outputDebugString(string.format("[NOPROXY] Error: %s", status.statusCode))
             if noproxy.kickOnError then
                 kickPlayer(player, "Unable to check your connection")
@@ -68,13 +78,19 @@ function checkVPN(player)
                 if noproxy.punishmentWithKick then
                     kickPlayer(player, noproxy.punishReason)
                 elseif noproxy.punishmentWithBan then
-                    banPlayer(player, true, nil, true, nil, noproxy.punishReason, noproxy.punishBanTime)
+                    banPlayer(player, true, false, false, "NO-PROXY", noproxy.punishReason, noproxy.punishBanTime)
                 end
             end
-			outputDebugString("[NOPROXY] VPN/proxy detected on %s (SERIAL: %s IP: %s)", getPlayerName(player), playerSerial, playerIP)
+            local message = string.format("[NOPROXY] VPN/proxy detected on %s (SERIAL: %s IP: %s)", getPlayerName(player), playerSerial, playerIP)
+            if noproxy.sendWebhook then
+                sendToDiscord(message)
+            end
+            outputServerLog(message)
+			outputDebugString(message)
             return
         end
 
+        outputServerLog(string.format("[NOPROXY] No VPN/proxy on %s (SERIAL: %s IP: %s)", getPlayerName(player), playerSerial, playerIP))
         outputDebugString(string.format("[NOPROXY] No VPN/proxy on %s (SERIAL: %s IP: %s)", getPlayerName(player), playerSerial, playerIP))
     end)
 	return true
@@ -83,3 +99,17 @@ end
 addEventHandler("onPlayerJoin", root, function()
 	checkVPN(source, false)
 end)
+
+----
+
+function sendToDiscord(message)
+    local request = fetchRemote(noproxy.webhookURL, {
+		queueName = "NO-PROXY-WEBHOOKS",
+		connectionAttempts = 10,
+		connectTimeout = 2000, 
+		formFields = {
+			username = noproxy.webhookUsername,
+			content = message
+		}
+	}, function() end)
+end
